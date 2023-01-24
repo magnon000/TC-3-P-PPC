@@ -1,0 +1,66 @@
+
+IL FAUT RETRANSCRIRE TOUT CE FICHIER (après avoir tout résolu) EN "STATE MACHINE DIAGRAM"............
+et EN PLUS faire un pseudo code.............
+...
+...
+et en PLUS faire une présentation de 15 minutes ....................
+et EN PLUS faire un rapport de 10 pages.................................................................. :|
+Avant............. le 3 février.
+
+
+
+
+
+------------------------------------------------------------------------------------------------------------
+
+PROCESSES :
+- plusieurs petits processes 'home' qui se lancent directement depuis le terminal (agit comme les clients dans les TD)
+- 1 process 'market' qui se lance directement (agit comme le serveur dans les TD) idéal à lancer en premier
+- 1 process 'external' fils de 'market' comme expliqué dans l'énoncé...
+- 1 process 'weather' qui se lance directement depuis le terminal (OU pourquoi pas fils de 'market' ?)
+
+------------------------------------------------------------------------------------------------------------
+
+MESSAGES QUEUES : entre les homes
+- A déterminer : 1 message queue qui agit comme une sorte de pipe entre chaque maison ? Ou une message queue globale
+avec les propositions de don des maisons productrices que les maisons réceptrices peuvent sémaphorer et accepter ?
+Le second choix est mieux je pense.
+Par contre, deux informations contradictoires :
+
+"Homes in need of energy will have to buy it from the market if others would not give away any. "
+et
+"type 3 homes sell energy on the market if no takers"
+
+Comment concilier ces deux ?
+Est-ce le donneur qui initie l'échange en proposant de l'énergie à tout le monde,
+ou est-ce le receveur qui initie l'échange en demandant de l'énergie à tout le monde ?
+Dans tous les cas, je pense qu'il ne faut pas que les maisons ATTENDENT de l'énergie de la part des autres maisons.
+
+
+Pour le type : puissance partagée en int peut-être ? je ne sais pas. mettre à profit l'attribut 'type' des messages queues
+
+------------------------------------------------------------------------------------------------------------
+
+SOCKETS : entre chaque home et le market
+- c'est sûrement les maisons qui initient le contact avec le marché car ils ne produisent pas assez ou pas du tout
+(après avoir demandé aux autres maisons selon leur type)
+- voir pour le type
+
+------------------------------------------------------------------------------------------------------------
+
+SHARED MEMORY : sert au weather process
+Je dirais plutôt des Values que des Arrays... 1 value température, une value météo etc
+"how they are accessed" ??? je sais pas
+
+------------------------------------------------------------------------------------------------------------
+
+SIGNALS : de external vers market
+on utilisera sûrement les signaux personnalisés (SIGUSER1 ou je sais plus quoi)
+le marché saura le décrypter
+
+------------------------------------------------------------------------------------------------------------
+
+TUBES : ???? ce n'est pas expliqué dans l'énoncé
+
+
+
