@@ -67,5 +67,12 @@ TUBES : ???? ce n'est pas expliqué dans l'énoncé
 
 => D'après conversation entendue : 1 signal vers market depuis external pour lui dire de lire dans la pipe, puis évènement spécifique spécifié dans la pipe
 
+------------------------------------------------------------------------------------------------------------
+fcts extra:
+* home: price up, consumption down
+* weather: ex. rain -> proba to cause an event ext
+* 
+
+
 
 
