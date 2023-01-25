@@ -17,7 +17,7 @@ PROCESSES :
 - plusieurs petits processes 'home' qui se lancent directement depuis le terminal (agit comme les clients dans les TD)
 - 1 process 'market' qui se lance directement (agit comme le serveur dans les TD) idéal à lancer en premier
 - 1 process 'external' fils de 'market' comme expliqué dans l'énoncé...
-- 1 process 'weather' qui se lance directement depuis le terminal (OU pourquoi pas fils de 'market' ?)
+- 1 process 'weather' qui se lance directement depuis le terminal (OU pourquoi pas fils de 'market' ? => PARCE QUE LES HOMES SONT AUSSI IMPACTEES PAR LA TEMPERATURE ETC)
 
 ------------------------------------------------------------------------------------------------------------
 
@@ -35,6 +35,9 @@ Comment concilier ces deux ?
 Est-ce le donneur qui initie l'échange en proposant de l'énergie à tout le monde,
 ou est-ce le receveur qui initie l'échange en demandant de l'énergie à tout le monde ?
 Dans tous les cas, je pense qu'il ne faut pas que les maisons ATTENDENT de l'énergie de la part des autres maisons.
+
+=> SOLUTION TROUVEE : QUE LES PRODUCERS QUI POUSSENT DANS LA MESSAGE QUEUE (& peuvent reprendre leur message dans le cas de 3)
+
 
 
 Pour le type : puissance partagée en int peut-être ? je ne sais pas. mettre à profit l'attribut 'type' des messages queues
@@ -61,6 +64,8 @@ le marché saura le décrypter
 ------------------------------------------------------------------------------------------------------------
 
 TUBES : ???? ce n'est pas expliqué dans l'énoncé
+
+=> D'après conversation entendue : 1 signal vers market depuis external pour lui dire de lire dans la pipe, puis évènement spécifique spécifié dans la pipe
 
 
 
