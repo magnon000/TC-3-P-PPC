@@ -1,4 +1,23 @@
 
+
+QUESTIONS :
+- principe d'horloge articielle ok ? (car implique delta t minimal et arbitraire) et time.sleep() dans un thread pour la faire s'écouler ?
+=> NOOOON
+- confusion unité energie (kWh ou kW)
+- shared memory entre processes de famille différentes ? => shared_memory ou sysv_ipc (ou remote manager)
+-
+
+
+
+
+
+SYMBOLE EQUIPE : pique vide
+=> passage mercredi de 10:30 - 10:45
+5 MINUTES MAX DE PRESENTATION (10 min de questions)
+FAIRE DES TESTS EN AMONT
+
+
+
 IL FAUT RETRANSCRIRE TOUT CE FICHIER (après avoir tout résolu) EN "STATE MACHINE DIAGRAM"............
 et EN PLUS faire un pseudo code.............
 ...
@@ -6,9 +25,6 @@ et EN PLUS faire un pseudo code.............
 et en PLUS faire une présentation de 15 minutes ....................
 et EN PLUS faire un rapport de 10 pages.................................................................. :|
 Avant............. le 3 février.
-
-
-
 
 
 ------------------------------------------------------------------------------------------------------------
@@ -38,6 +54,7 @@ Dans tous les cas, je pense qu'il ne faut pas que les maisons ATTENDENT de l'én
 
 
 Pour le type : puissance partagée en int peut-être ? je ne sais pas. mettre à profit l'attribut 'type' des messages queues
+ON SE SERT DES TYPES DE MESSAGE DANS MESSAGE QUEUE POUR ENELVER SON MESSAGE LORSQUE AUCUN DONNEUR
 
 ------------------------------------------------------------------------------------------------------------
 
