@@ -1,3 +1,7 @@
+Problèmes 29/01/23 :
+- message queue qui ne marche pas (les dons ne sont pas reçus)
+
+
 
 
 QUESTIONS :
@@ -48,16 +52,37 @@ et
 "type 3 homes sell energy on the market if no takers"
 
 Comment concilier ces deux ?
-Est-ce le donneur qui initie l'échange en proposant de l'énergie à tout le monde,
-ou est-ce le receveur qui initie l'échange en demandant de l'énergie à tout le monde ?
+Est-ce le donneur qui initie l'échange en proposant de l'énergie à tout le monde (oui)
+ou est-ce le receveur qui initie l'échange en demandant de l'énergie à tout le monde ? (choisi: non)
 Dans tous les cas, je pense qu'il ne faut pas que les maisons ATTENDENT de l'énergie de la part des autres maisons.
 
 => SOLUTION TROUVEE : QUE LES PRODUCERS QUI POUSSENT DANS LA MESSAGE QUEUE (& peuvent reprendre leur message dans le cas de 3)
 
+POINT 1====> Aussi, modèle gourmand & égoiste : si assez d'énergie disponible dans la message queue, la maison va se servir
+de tous les dons jusqu'à être compensé en consommation sans partager (premier arrivé premier servi)
+Pour changer ça intervertir semaphore et boucle là où c'est écrit
 
+POINT 2====> + modèle donner c'est donner reprendre c'est voler = producteur qui devient consommateur n'a pas la priorité
+sur la message queue, il attend comme tout le monde et ne reprend pas forcément ce qu'il a mis sur la queue
+
+POINT 3===>>> IMPORTANT : modèle MECHANT => une maison se sert dans la message queue. Si elle obtient plus que
+nécessaire, elle garde ce surplus pour elle et le gère selon son type I II ou III (grâce au thread séparation)
+Pour changer ça, le surplus obtenu de la message queue ne doit pas être enregistré dans les stats globales
+
+
+========================>>>>> J'ai fait plusieurs tests et il semble que sysv_ipc intègre déjà dans ses
+fonctions recieve et send un mutex. Car quand on met deux clients attendant sur une message queue et qu'on envoie
+sur la message queue des messages, celui qui le reçoit change d'un message sur l'autre.
+Mais je sémaphore quand même par précaution l'accès à la message queue (que ce soit écriture ou lecture)
+Cela permet d'implémenter le modèle gourmand & égoiste
 
 Pour le type : puissance partagée en int peut-être ? je ne sais pas. mettre à profit l'attribut 'type' des messages queues
 ON SE SERT DES TYPES DE MESSAGE DANS MESSAGE QUEUE POUR ENELVER SON MESSAGE LORSQUE AUCUN DONNEUR
+=> Donc
+
+Résumé : modèle gourmand (les maisons prendent plus que nécessaire plutôt que moins), égoiste (dès qu'une maison a l'accès
+elle ne le lâche pas tant qu'elle n'est pas rassasiée) et méchant (le surplus obtenu par gourmandise est traité comme
+une production personnelle
 
 ------------------------------------------------------------------------------------------------------------
 
