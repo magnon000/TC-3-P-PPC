@@ -6,6 +6,9 @@ from multiprocessing import Process, Semaphore
 import threading
 import time
 import random
+import subprocess
+import signal
+
 
 HOST = "localhost"
 PORT = 1856
@@ -17,8 +20,6 @@ description_types_maisons = ["I : Je donne toujours mon surplus",
 # bornes min et max des configs aléatoires lorsque aucun paramètres au lancement du programme
 MAX_RANDOM_ENERGIE = 100
 MIN_RANDOM_ENERGIE = 0
-
-dons_mq = sysv_ipc.MessageQueue(MQ_CLE, sysv_ipc.IPC_CREAT)
 
 utilise_electricite = True
 conso_energie = 0
@@ -67,7 +68,7 @@ def achat_market(manque):
         pos_separateur = facture.index("|")
         quantite_recue = facture[:pos_separateur]
         prix_a_payer = facture[pos_separateur+1:]
-        print("Facture (quantité reçue | prix à payer):", quantite_recue, "|", prix_a_payer, "€")
+        print("Facture (quantité reçue | prix à payer):", quantite_recue, "kWh |", prix_a_payer, "€")
         with energie_semaphore:
             maj_energie("compensation", quantite_recue)
 
@@ -99,14 +100,15 @@ def don_voisinnage(a_donner):
     with queue_semaphore:
         try:
             dons_mq.send(message, type=pid)
-            with energie_semaphore:
-                maj_energie("compensation", -float(a_donner))
         except sysv_ipc.BusyError:
             mq_saturation = True
 
     if mq_saturation:
         print("ESPACE DE DONS SATURÉ: vente sur le marché, malheureusement je n'ai pas le choix...")
         vente_market(a_donner)
+    else:
+        with energie_semaphore:
+            maj_energie("compensation", -float(a_donner))
 
 
 def don_voisinnage_ou_vente(a_donner):
@@ -117,8 +119,6 @@ def don_voisinnage_ou_vente(a_donner):
     with queue_semaphore:
         try:
             dons_mq.send(message, type=pid)
-            with energie_semaphore:
-                maj_energie("compensation", -float(a_donner))
         except sysv_ipc.BusyError:
             mq_saturation = True
 
@@ -138,9 +138,8 @@ def don_voisinnage_ou_vente(a_donner):
             vente_market(a_donner)
         else:
             with energie_semaphore:
-                maj_energie("compensation", -a_donner)
+                maj_energie("compensation", -float(a_donner))
             print("Le surplus a bien été donné au voisinnage.")
-
 
 
 def recolte_don(manque):
@@ -152,7 +151,7 @@ def recolte_don(manque):
     with queue_semaphore:
         while quantite_recoltee < manque and don_dernier_tour:
             try:
-                message, type = dons_mq.receive(block=False)
+                message, type_msg = dons_mq.receive(block=False)
                 quantite_recoltee += float(message.decode())
             except sysv_ipc.BusyError:
                 # arrêter la récolte lorsqu'il n'y a plus de dons dans la message queue
@@ -200,7 +199,37 @@ def acquisition_energie():
 def separateur():
     print("-----------------------------------")
 
+
+def flush_message_queue_if_necessary():
+    commande_verif_message_queue = 'ps -ef | grep "python3 home.py" | grep -v grep | wc -l'
+    proc = subprocess.Popen(commande_verif_message_queue, stdout=subprocess.PIPE, shell=True)
+    (out, err) = proc.communicate()
+    nb_maisons = int(out.decode())
+    print(nb_maisons)
+
+    # supprimer la message queue de l'ancienne session si elle existe encore
+    if nb_maisons < 2:
+        try:
+            a_supprimer = sysv_ipc.MessageQueue(MQ_CLE)
+            a_supprimer.remove()
+        except sysv_ipc.ExistentialError:
+            pass
+
+
+def termination(sig, frame):
+    if sig == signal.SIGINT:
+        global utilise_electricite
+        utilise_electricite = False
+        global dons_mq
+        flush_message_queue_if_necessary()
+        print("Demande de termination. La maison se fermera dès que possible.")
+
+
 if __name__ == "__main__":
+    queue_semaphore = Semaphore(1)  # a remplacer plus tard par la sémaphore du remote manager
+    with queue_semaphore:
+        flush_message_queue_if_necessary()
+    dons_mq = sysv_ipc.MessageQueue(MQ_CLE, sysv_ipc.IPC_CREAT)
     pid = os.getpid()
     if len(sys.argv) < 4:
         print("AVERTISSEMENT: la configuration de départ de la maison n'a pas été spécifiée."
@@ -212,13 +241,16 @@ if __name__ == "__main__":
         type_maison = int(sys.argv[1])
         prod_energie = float(sys.argv[2])
         conso_energie = float(sys.argv[3])
+
+    signal.signal(signal.SIGINT, termination)
+
     separateur()
     print("Je suis la maison", os.getpid(), "de type", description_types_maisons[type_maison-1])
     print("Ma production initiale est de", prod_energie, "kWh et ma consommation initiale est de ", conso_energie, "kWh.")
     separateur()
+
     benefice_energie_global = prod_energie+compensation_energie-conso_energie
     energie_semaphore = Semaphore(1)
-    queue_semaphore = Semaphore(1)
     thread_achat = threading.Thread(target=acquisition_energie)
     thread_achat.start()
     thread_vente = threading.Thread(target=separation_energie)
