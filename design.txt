@@ -1,6 +1,3 @@
-Problèmes 29/01/23 :
-- message queue qui ne marche pas (les dons ne sont pas reçus)
-
 
 
 

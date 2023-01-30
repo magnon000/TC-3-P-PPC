@@ -5,6 +5,7 @@ import sysv_ipc
 from multiprocessing import Process, Semaphore
 import threading
 import time
+import random
 
 HOST = "localhost"
 PORT = 1856
@@ -13,11 +14,15 @@ description_types_maisons = ["I : Je donne toujours mon surplus",
                              "II : Je vends toujours mon surplus",
                              "III : Je vends mon surplus si personne n'en veut"]
 
-homes_mq = sysv_ipc.MessageQueue(MQ_CLE, sysv_ipc.IPC_CREAT)
+# bornes min et max des configs aléatoires lorsque aucun paramètres au lancement du programme
+MAX_RANDOM_ENERGIE = 100
+MIN_RANDOM_ENERGIE = 0
+
+dons_mq = sysv_ipc.MessageQueue(MQ_CLE, sysv_ipc.IPC_CREAT)
 
 utilise_electricite = True
-conso_energie = float(sys.argv[2])
-prod_energie = float(sys.argv[3])
+conso_energie = 0
+prod_energie = 0
 compensation_energie = 0
 benefice_energie_global = prod_energie+compensation_energie-conso_energie
 
@@ -90,32 +95,52 @@ def don_voisinnage(a_donner):
     a_donner = str(a_donner)
     print("Surplus d'énergie de " + a_donner + " kWh. Don au voisinnage.")
     message = a_donner.encode()
+    mq_saturation = False
     with queue_semaphore:
-        homes_mq.send(message, type=pid)
-    with energie_semaphore:
-        maj_energie("compensation", -float(a_donner))
+        try:
+            dons_mq.send(message, type=pid)
+            with energie_semaphore:
+                maj_energie("compensation", -float(a_donner))
+        except sysv_ipc.BusyError:
+            mq_saturation = True
+
+    if mq_saturation:
+        print("ESPACE DE DONS SATURÉ: vente sur le marché, malheureusement je n'ai pas le choix...")
+        vente_market(a_donner)
 
 
 def don_voisinnage_ou_vente(a_donner):
     a_donner = str(a_donner)
     print("Surplus d'énergie de " + a_donner + " kWh. Initiation d'un don au voisinnage...")
     message = a_donner.encode()
-    with queue_semaphore:
-        homes_mq.send(message, type=pid)
-    time.sleep(3)
-    personne_ne_veut = True
+    mq_saturation = False
     with queue_semaphore:
         try:
-            homes_mq.receive(block=False, type=pid)
+            dons_mq.send(message, type=pid)
+            with energie_semaphore:
+                maj_energie("compensation", -float(a_donner))
         except sysv_ipc.BusyError:
-            personne_ne_veut = False
-    if personne_ne_veut:
-        print("Aucun prenneur parmis les voisins. Le surplus sera vendu au marché.")
+            mq_saturation = True
+
+    if mq_saturation:
+        print("ESPACE DE DONS SATURÉ: vente sur le marché à la place !")
         vente_market(a_donner)
     else:
-        with energie_semaphore:
-            maj_energie("compensation", -a_donner)
-        print("Le surplus a bien été donné au voisinnage.")
+        time.sleep(3)
+        personne_ne_veut = True
+        with queue_semaphore:
+            try:
+                dons_mq.receive(block=False, type=pid)
+            except sysv_ipc.BusyError:
+                personne_ne_veut = False
+        if personne_ne_veut:
+            print("Aucun prenneur parmis les voisins. Le surplus sera vendu au marché.")
+            vente_market(a_donner)
+        else:
+            with energie_semaphore:
+                maj_energie("compensation", -a_donner)
+            print("Le surplus a bien été donné au voisinnage.")
+
 
 
 def recolte_don(manque):
@@ -127,16 +152,16 @@ def recolte_don(manque):
     with queue_semaphore:
         while quantite_recoltee < manque and don_dernier_tour:
             try:
-                message = homes_mq.receive(block=False, type=pid)
-                quantite_recoltee += int(message.decode())
+                message, type = dons_mq.receive(block=False)
+                quantite_recoltee += float(message.decode())
             except sysv_ipc.BusyError:
                 # arrêter la récolte lorsqu'il n'y a plus de dons dans la message queue
                 don_dernier_tour = False
 
+    print("Obtenu", quantite_recoltee, "kWh par donation(s).")
     if quantite_recoltee > 0:
         with energie_semaphore:
             maj_energie("compensation", quantite_recoltee)
-    print("Obtenu", quantite_recoltee, "kWh par donation(s).")
 
     return quantite_recoltee-manque
 
@@ -172,10 +197,26 @@ def acquisition_energie():
                 achat_market(manque_apres_don)
 
 
+def separateur():
+    print("-----------------------------------")
+
 if __name__ == "__main__":
     pid = os.getpid()
-    type_maison = int(sys.argv[1])
+    if len(sys.argv) < 4:
+        print("AVERTISSEMENT: la configuration de départ de la maison n'a pas été spécifiée."
+              "Des valeurs aléatoires seront attribuées.")
+        type_maison = random.randint(1, 3)
+        prod_energie = float(random.randint(MIN_RANDOM_ENERGIE, MAX_RANDOM_ENERGIE))
+        conso_energie = float(random.randint(MIN_RANDOM_ENERGIE, MAX_RANDOM_ENERGIE))
+    else:
+        type_maison = int(sys.argv[1])
+        prod_energie = float(sys.argv[2])
+        conso_energie = float(sys.argv[3])
+    separateur()
     print("Je suis la maison", os.getpid(), "de type", description_types_maisons[type_maison-1])
+    print("Ma production initiale est de", prod_energie, "kWh et ma consommation initiale est de ", conso_energie, "kWh.")
+    separateur()
+    benefice_energie_global = prod_energie+compensation_energie-conso_energie
     energie_semaphore = Semaphore(1)
     queue_semaphore = Semaphore(1)
     thread_achat = threading.Thread(target=acquisition_energie)

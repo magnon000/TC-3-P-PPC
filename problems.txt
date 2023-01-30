@@ -1,1 +1,23 @@
-fdfdfdfd
+
+
+
+PROBLEMES STUPIDES :
+
+- messages non reçus sur la message queue
+Solution : type en trop
+
+
+
+
+PROBLEMES D'IMPLEMENTATION :
+
+- supprimer la message queue au lancement du premier home
+Pas de solution pour l'instant
+
+
+
+
+PROBLEMES CONCEPTUELS:
+
+- gestion des dons
+Solution : expliqué dans design.txt
