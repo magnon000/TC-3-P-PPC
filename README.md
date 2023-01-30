@@ -24,8 +24,10 @@ simulation in Python.
 * `market`<===child===`external`---signals--->`market`
 * `home` & `market` ==> **display progress**
 ### Energy price: linear model
+---
 $$ P_t = \gamma P_{t-1} +  \sum_i \alpha_i f_{i,t} + \sum_j \beta_j u_{j,t} $$
-$ Price_{current} = Coef_\gamma * Price_{last} + Coef_\alpha * Internal-Factor_{all-time} + Coef_\beta * External-Factor_{all-time} $
+---
+Price(current) = Coef1 * Price(last) + Coef2 * Internal-Factor(all-time) + Coef3 * External-Factor(all-time)
 ### Other specifications:
 * Automate the startup and the proper shutdown of the simulation, freeing all resources.
 * Identify possible failure scenarios 
