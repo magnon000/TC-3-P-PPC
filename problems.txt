@@ -1,12 +1,8 @@
 
-
-
 PROBLEMES STUPIDES :
 
 - messages non reçus sur la message queue
 Solution : type en trop
-
-
 
 
 PROBLEMES D'IMPLEMENTATION :
@@ -16,9 +12,6 @@ Solution : regarder si il y a d'autres process home au lancement de home.py. Si 
 
 - réalisation : les sémaphores de la message queue ne sont pas les mêmes entre les homes
 Solution (pas encore fait) : les partager avec remote manager
-
-
-
 
 
 PROBLEMES CONCEPTUELS:
