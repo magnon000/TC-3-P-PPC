@@ -2,6 +2,12 @@
 A faire plus tard : paramètres initiaux en input
 
 
+CONSO ENERGIE EN FCT DE TEMPERATURE :
+https://www.researchgate.net/figure/Energy-consumption-data-Plot-of-temperature-and-energy-consumption-and-the-constrained_fig5_335617611
+https://www.researchgate.net/figure/Energy-consumption-response-to-air-temperature-a-two-general-response-functions-see_fig1_329259791
+haut - bas - haut => x^2 ? minimum vers 17 degrés celsius
+
+
 
 QUESTIONS :
 - principe d'horloge articielle ok ? (car implique delta t minimal et arbitraire) et time.sleep() dans un thread pour la faire s'écouler ?

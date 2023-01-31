@@ -57,39 +57,49 @@ def maj_energie(parametre_modifie, quantite):
 def achat_market(manque):
     print("Déficit d'énergie de "+str(manque)+" kWh. Initiation d'une transaction avec le marché pour en acheter.")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as market_achat_socket:
-        market_achat_socket.connect((HOST, PORT))
-        quantite_demandee = str(manque)
-        market_achat_socket.send(quantite_demandee.encode())
-        reponse = market_achat_socket.recv(1024)
-        if not len(reponse):
-            print("ERREUR: la connection au marché est fermée")
-            sys.exit(1)
-        facture = reponse.decode()
-        pos_separateur = facture.index("|")
-        quantite_recue = facture[:pos_separateur]
-        prix_a_payer = facture[pos_separateur+1:]
-        print("Facture (quantité reçue | prix à payer):", quantite_recue, "kWh |", prix_a_payer, "€")
-        with energie_semaphore:
-            maj_energie("compensation", quantite_recue)
+        try:
+            market_achat_socket.connect((HOST, PORT))
+            quantite_demandee = str(manque)
+            market_achat_socket.send(quantite_demandee.encode())
+            reponse = market_achat_socket.recv(1024)
+            if not len(reponse):
+                print("ERREUR: la connection au marché est fermée")
+                sys.exit(1)
+            facture = reponse.decode()
+            pos_separateur = facture.index("|")
+            quantite_recue = facture[:pos_separateur]
+            prix_a_payer = facture[pos_separateur + 1:]
+            print("Facture (quantité reçue | prix à payer):", quantite_recue, "kWh |", prix_a_payer, "€")
+            with energie_semaphore:
+                maj_energie("compensation", quantite_recue)
+        except ConnectionRefusedError:
+            print("ERREUR: impossible de se connecter au marché. Il n'est sûrement pas ouvert. Termination")
+            global utilise_electricite
+            utilise_electricite = False
 
 
 def vente_market(a_vendre):
     print("Surplus d'énergie de " + str(a_vendre) + " kWh. Initiation d'une transaction avec le marché pour le vendre.")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as market_vente_socket:
-        market_vente_socket.connect((HOST, PORT))
-        quantite_a_vendre = str(-float(a_vendre))
-        market_vente_socket.send(quantite_a_vendre.encode())
-        reponse = market_vente_socket.recv(1024)
-        if not len(reponse):
-            print("ERREUR: la connection au marché est impossible")
-            sys.exit(1)
-        fiche_de_paie = reponse.decode()
-        pos_separateur = fiche_de_paie.index("|")
-        quantite_vendue = fiche_de_paie[:pos_separateur]
-        revenus = fiche_de_paie[pos_separateur + 1:]
-        print("Revenus (quantité d'énergie | profit):", quantite_vendue, "kWh |", revenus, "€")
-        with energie_semaphore:
-            maj_energie("compensation", float(quantite_vendue))
+        try:
+            market_vente_socket.connect((HOST, PORT))
+            quantite_a_vendre = str(-float(a_vendre))
+            market_vente_socket.send(quantite_a_vendre.encode())
+            reponse = market_vente_socket.recv(1024)
+            if not len(reponse):
+                print("ERREUR: la connection au marché est impossible")
+                sys.exit(1)
+            fiche_de_paie = reponse.decode()
+            pos_separateur = fiche_de_paie.index("|")
+            quantite_vendue = fiche_de_paie[:pos_separateur]
+            revenus = fiche_de_paie[pos_separateur + 1:]
+            print("Revenus (quantité d'énergie | profit):", quantite_vendue, "kWh |", revenus, "€")
+            with energie_semaphore:
+                maj_energie("compensation", float(quantite_vendue))
+        except ConnectionRefusedError:
+            print("ERREUR: connection au marché impossible. Il n'est sûrement pas ouvert. Termination.")
+            global utilise_electricite
+            utilise_electricite = False
 
 
 def don_voisinnage(a_donner):
@@ -222,7 +232,7 @@ def termination(sig, frame):
         utilise_electricite = False
         global dons_mq
         flush_message_queue_if_necessary()
-        print("Demande de termination. La maison se fermera dès que possible.")
+        print("Demande de termination. La maison se détruira dès que possible.")
 
 
 if __name__ == "__main__":
