@@ -1,14 +1,14 @@
-from multiprocessing.managers import BaseManager
-from multiprocessing import RLock
 import math
 import random
 import signal
 import threading
 import time
+from multiprocessing import RLock
+from multiprocessing.managers import BaseManager
 
 PORT = 50000
 ADDRESS = '127.0.0.1'
-AUTH_KEY = b'weather'
+AUTH_KEY = b'weather_dict'
 START_DAY = 0  # one year 360 days, choice: [0-359]
 
 
@@ -26,6 +26,9 @@ class WeatherDict:
     def get(self, key):
         return self.items.get(key)
 
+    def __getitem__(self, key):
+        return self.get(key)
+
     def __setitem__(self, key, value):
         """
         Called to implement assignment to self[key]. ex. s['temp'] = 20
@@ -35,29 +38,21 @@ class WeatherDict:
         """
         self.set(key, value)
 
-    def __getitem__(self, key):
-        return self.items[key]
-
-    # def update_weather(self):
-    #     global stop_weather_server
-    #     tempe_list = build_temperature()
-    #     day_index = 0  # begin at 01/01
-    #     while not stop_weather_server:
-    #         print(day_index)
-    #         self.items['temperature'] = tempe_list[day_index]
-    #         day_index += 1
-    #         if day_index == 360:
-    #             day_index = 0
-    #         time.sleep(0.2)
-
-
-weather = WeatherDict()
-# weather['temperature'] = 20
-# weather['rain'] = True
-# print(weather.items)
-lock = RLock()
-RemoteManager.register('WeatherDictInstance', callable=lambda: weather)
-RemoteManager.register('open_lock', callable=lambda: lock)
+    def update_weather(self):
+        global stop_weather_server
+        tempe_list = build_temperature()
+        day_index = 0  # begin at 01/01
+        while not stop_weather_server:
+            variation = random.normalvariate(0, 1.5)  # Normal distribution
+            if tempe_list[day_index] + variation > 0:
+                self.items['temperature'] = tempe_list[day_index] + variation
+            else:
+                self.items['temperature'] = 0.05
+            day_index += 1
+            if day_index == 360:
+                day_index = 0
+            time.sleep(0.2)
+            print("day:", day_index, "; temperature:", self.items['temperature'], "°C")
 
 
 class ManagerServer:
@@ -103,39 +98,46 @@ def build_temperature() -> list:  # baseline temperature
     return tempe_list
 
 
-# print(build_temperature())
-
+weather_dict = WeatherDict()
+# weather_dict['temperature'] = 20
+# weather_dict['rain'] = True
+# print(weather_dict.items)
+lock = RLock()  # reentrant lock objects
+# lock.acquire()
+RemoteManager.register('WeatherDictInstance', callable=lambda: weather_dict)
+RemoteManager.register('open_lock', callable=lambda: lock)
 
 # stop_weather_server = threading.Event()
 stop_weather_server = False
+# stop_weather_server.clear()
+# print(stop_weather_server)
 
 
-# def stop_weather(sig):
-#     """for main to stop weather, the simplest"""
-#     global stop_weather_server
-#     if not stop_weather_server.is_set():
-#         if sig == signal.SIGUSR1:
-#             stop_weather_server.set()
-
-
-def update_weather():
+def stop_weather(sig):
+    """for main to stop weather_dict, the simplest"""
     global stop_weather_server
-    tempe_list = build_temperature()
-    day_index = 0  # begin at 01/01
-    while not stop_weather_server:
-        # print(day_index)
-        weather['temperature'] = tempe_list[day_index]
-        day_index += 1
-        if day_index == 360:
-            day_index = 0
-        time.sleep(0.2)
-        print(weather['temperature'])
+    if not stop_weather_server.is_set():
+        if sig == signal.SIGUSR1:
+            stop_weather_server.set()
+
+
+# def update_weather():
+#     global stop_weather_server
+#     tempe_list = build_temperature()
+#     day_index = 0  # begin at 01/01
+#     while not stop_weather_server:
+#         # print(day_index)
+#         weather_dict['temperature'] = tempe_list[day_index]
+#         day_index += 1
+#         if day_index == 360:
+#             day_index = 0
+#         time.sleep(0.2)
+#         print(weather_dict['temperature'])
 
 
 if __name__ == "__main__":
     # pass
-    # print(stop_weather_server)
-    # update_weather()
-    weather_update_thread = threading.Thread(target=update_weather())
+    # print(build_temperature())
+    weather_update_thread = threading.Thread(target=weather_dict.update_weather)
     weather_update_thread.start()
     weather_update_thread.join()
