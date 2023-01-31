@@ -23,7 +23,7 @@ historique_transactions = []
 
 
 def guichet_client(guichet_socket, addresse, semaphore):
-    print("Initiation d'une transaction avec un client sous l'addresse "+addresse)
+    print("Initiation weather'une transaction avec un client sous l'addresse "+addresse)
     global historique_transactions
     with guichet_socket:
         data = guichet_socket.recv(1024)
@@ -35,7 +35,7 @@ def guichet_client(guichet_socket, addresse, semaphore):
         a_envoyer = str(quantite) + "|" + str(facture)
         guichet_socket.send(a_envoyer.encode())
         terminal_message = "La maison de la transaction "+addresse+" a "
-        terminal_message += ("ACHETÉ " if quantite > 0 else "VENDU ")+str(abs(quantite))+" kHw d'énergie pour "
+        terminal_message += ("ACHETÉ " if quantite > 0 else "VENDU ")+str(abs(quantite))+" kHw weather'énergie pour "
         terminal_message += str(facture)+" € (unitaire: "+str(prix)+" €/kWh)"
         print(terminal_message)
 

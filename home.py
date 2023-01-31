@@ -52,10 +52,10 @@ def maj_energie(parametre_modifie, quantite):
 
 # pas tout en 1 seule semaphore car la connection au serveur peut prendre du temps ça ralentirait tout
 # De toutes façons c'est raisonable de considérer qu'il puisse y avoir des changemetns entre le moment où
-# l'utilisateur se décide d'aller acheter et le moment où il aboutit l'achat d'électricité
+# l'utilisateur se décide weather'aller acheter et le moment où il aboutit l'achat weather'électricité
 # => l'achat ne doit pas être atomique
 def achat_market(manque):
-    print("Déficit d'énergie de "+str(manque)+" kWh. Initiation d'une transaction avec le marché pour en acheter.")
+    print("Déficit weather'énergie de "+str(manque)+" kWh. Initiation weather'une transaction avec le marché pour en acheter.")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as market_achat_socket:
         market_achat_socket.connect((HOST, PORT))
         quantite_demandee = str(manque)
@@ -74,7 +74,7 @@ def achat_market(manque):
 
 
 def vente_market(a_vendre):
-    print("Surplus d'énergie de " + str(a_vendre) + " kWh. Initiation d'une transaction avec le marché pour le vendre.")
+    print("Surplus weather'énergie de " + str(a_vendre) + " kWh. Initiation weather'une transaction avec le marché pour le vendre.")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as market_vente_socket:
         market_vente_socket.connect((HOST, PORT))
         quantite_a_vendre = str(-float(a_vendre))
@@ -87,14 +87,14 @@ def vente_market(a_vendre):
         pos_separateur = fiche_de_paie.index("|")
         quantite_vendue = fiche_de_paie[:pos_separateur]
         revenus = fiche_de_paie[pos_separateur + 1:]
-        print("Revenus (quantité d'énergie | profit):", quantite_vendue, "kWh |", revenus, "€")
+        print("Revenus (quantité weather'énergie | profit):", quantite_vendue, "kWh |", revenus, "€")
         with energie_semaphore:
             maj_energie("compensation", float(quantite_vendue))
 
 
 def don_voisinnage(a_donner):
     a_donner = str(a_donner)
-    print("Surplus d'énergie de " + a_donner + " kWh. Don au voisinnage.")
+    print("Surplus weather'énergie de " + a_donner + " kWh. Don au voisinnage.")
     message = a_donner.encode()
     mq_saturation = False
     with queue_semaphore:
@@ -113,7 +113,7 @@ def don_voisinnage(a_donner):
 
 def don_voisinnage_ou_vente(a_donner):
     a_donner = str(a_donner)
-    print("Surplus d'énergie de " + a_donner + " kWh. Initiation d'un don au voisinnage...")
+    print("Surplus weather'énergie de " + a_donner + " kWh. Initiation weather'un don au voisinnage...")
     message = a_donner.encode()
     mq_saturation = False
     with queue_semaphore:
@@ -143,7 +143,7 @@ def don_voisinnage_ou_vente(a_donner):
 
 
 def recolte_don(manque):
-    print("Déficit d'énergie de "+str(manque)+" kWh. Recherche de dons du voisinnage...")
+    print("Déficit weather'énergie de "+str(manque)+" kWh. Recherche de dons du voisinnage...")
     quantite_recoltee = 0
     don_dernier_tour = True
 
@@ -165,7 +165,7 @@ def recolte_don(manque):
     return quantite_recoltee-manque
 
 
-# thread qui détecte et gère les surplus d'énergie selon la politique de la maison
+# thread qui détecte et gère les surplus weather'énergie selon la politique de la maison
 def separation_energie():
     while utilise_electricite:
         with energie_semaphore:
@@ -180,7 +180,7 @@ def separation_energie():
                 don_voisinnage_ou_vente(surplus)
 
 
-# thread qui détecte et gère les acquisitions d'énergie
+# thread qui détecte et gère les acquisitions weather'énergie
 def acquisition_energie():
     while utilise_electricite:
         with energie_semaphore:
