@@ -17,6 +17,11 @@ marche_ouvert = True
 prix = 0.00
 prix_precedent = 0.00
 
+strike_event = False
+antinuclear_event = False
+MODULATION_STRIKE_DEFAULT = 0.1
+MODULATION_NUCLEAR_DEFAULT = 1
+
 # du point de vue du marché (=> achat = le marché à acheté à une maison, inversement pour vente)
 historique_ventes = []
 historique_achats = []
@@ -53,7 +58,7 @@ def guichet_client(guichet_socket, addresse, semaphore):
         print(terminal_message)
 
 
-def contribution_historique():
+def contribution_historique(modulation):
     nb_transactions = len(historique_achats)  # égal à historique_ventes puisque remplissage avec zéros
 
     # éviter que au cours du temps les transactions aient de moins en moins d'impact sur le prix en ne considérant
@@ -71,7 +76,21 @@ def contribution_historique():
     else:
         facteur = 0
 
-    return facteur
+    return modulation*facteur
+
+
+def contribution_strike(modulation):
+    u = 0
+    if strike_event:
+        u = 1
+    return modulation*u
+
+
+def contribution_antinuclear(modulation):
+    u = 0
+    if antinuclear_event:
+        u = 1
+    return modulation*u
 
 
 def evolution_prix():
@@ -82,7 +101,8 @@ def evolution_prix():
             global prix
             global prix_precedent
             prix_precedent = prix
-            prix = gamma_coef * prix_precedent + modulation_historique*contribution_historique()
+            prix = gamma_coef * prix_precedent + contribution_historique(modulation_historique)
+            prix += contribution_strike(modulation_strike) + contribution_antinuclear(modulation_nuclear)
             prix = round(prix, 5)
             if prix < 0:
                 marche_ouvert = False
@@ -94,15 +114,46 @@ def termination(sig, frame):
         global marche_ouvert
         marche_ouvert = False
         os.kill(pid_external, signal.SIGINT)
-        print("Demande de termination. Le marché se fermera dès que possible.")
+        try:
+            print("Demande de termination. Le marché se fermera dès que possible.")
+        except RuntimeError:
+            pass
+
 
 def strike(sig, frame):
     if sig == signal.SIGUSR1:
-        if
+        global strike_event
+        if not strike_event:
+            a_print = "\n------------------- ALERTE -------------------\n"
+            a_print += "Grèves massives chez EDF annoncées par la CGT\n"
+            a_print += "----------------------------------------------\n"
+            print(a_print)
+        else:
+            a_print = "\n------------------- ALERTE -------------------\n"
+            a_print += "Fin des grèves massives chez EDF\n"
+            a_print += "----------------------------------------------\n"
+            print(a_print)
+        strike_event = not strike_event
 
-def nuclear(sig, frame):
+
+def antinuclear(sig, frame):
     if sig == signal.SIGUSR2:
-        global
+        global antinuclear_event
+        if not antinuclear_event:
+            a_print = "\n------------------☢ ALERTE ☢------------------\n"
+            a_print += "Le lobby anti-nucléaire a 'convaincu' l'État de\n"
+            a_print += "fermer 1/3 des centrales nucléaires. Une grande\n"
+            a_print += "partie de l'électricité est maintenant importée.\n"
+            a_print += "----------------------------------------------\n"
+            print(a_print)
+        else:
+            a_print = "\n------------------☢ ALERTE ☢------------------\n"
+            a_print += "Après de nombreuses manifestations ainsi que\n"
+            a_print += "des critiques sévères de la part d'experts, les\n"
+            a_print += "centrales nucléaires fermées seront ré-ouvertes.\n"
+            a_print += "----------------------------------------------\n"
+            print(a_print)
+        antinuclear_event = not antinuclear_event
 
 
 # Processus external, fils de market
@@ -116,35 +167,39 @@ def external():
 
     signal.signal(signal.SIGINT, stop_handler)
 
-    strike_event = False
-    antinuclear_event = False
+    strike_on = False
+    antinuclear_on = False
     while monde_existe:
         destin = random.uniform(0, 1)
-        if 0.000000001 < destin < 0.000000002 and not antinuclear_event:
-            antinuclear_event = True
-            print("Nuke on")
-        if 0.10000001 < destin < 0.10000002 and antinuclear_event:
-            antinuclear_event = False
-            print("Nuke off")
-        if 0.20000001 < destin < 0.20000002 and not strike_event:
-            strike_event = True
-            print("Strike on")
-        if 0.30000001 < destin < 0.30000005 and strike_event:
-            strike_event = False
-            print("Strike off")
+        if 0.000000001 < destin < 0.000000004 and not antinuclear_on:
+            antinuclear_on = True
+            os.kill(os.getppid(), signal.SIGUSR2)
+        if 0.10000001 < destin < 0.10000002 and antinuclear_on:
+            antinuclear_on = False
+            os.kill(os.getppid(), signal.SIGUSR2)
+        if 0.20000001 < destin < 0.20000002 and not strike_on:
+            strike_on = True
+            os.kill(os.getppid(), signal.SIGUSR1)
+        if 0.30000001 < destin < 0.30000005 and strike_on:
+            strike_on = False
+            os.kill(os.getppid(), signal.SIGUSR1)
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 6:
         print("AVERTISSEMENT: la configuration de départ du marché n'a pas été spécifiée."
               "Des valeurs aléatoires et par défaut seront attribuées.")
         prix_initial = round(random.uniform(0.05, 10.0), 2)  # entre 5 centime et 10€ au kWh
         gamma_coef = round(random.uniform(0.95, 0.99), 2)
         modulation_historique = MODULATION_HISTORIQUE_DEFAULT
+        modulation_strike = MODULATION_STRIKE_DEFAULT
+        modulation_nuclear = MODULATION_NUCLEAR_DEFAULT
     else:
         prix_initial = float(sys.argv[1])
         gamma_coef = float(sys.argv[2])
         modulation_historique = float(sys.argv[3])
+        modulation_strike = float(sys.argv[4])
+        modulation_nuclear = float(sys.argv[5])
 
     print("Prix initial =", prix_initial, "€/kWh | Ɣ = ", gamma_coef, "Modulation historique = ", modulation_historique)
     prix = prix_initial
@@ -159,9 +214,7 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, termination)
     signal.signal(signal.SIGUSR1, strike)
-    signal.signal(signal.SIGUSR2, nuclear)
-    strike_event = False
-    nuclear_event = False
+    signal.signal(signal.SIGUSR2, antinuclear)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.setblocking(False)
