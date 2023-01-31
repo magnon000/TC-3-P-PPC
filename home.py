@@ -268,3 +268,4 @@ if __name__ == "__main__":
     thread_vente.join()
     thread_achat.join()
 
+

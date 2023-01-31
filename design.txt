@@ -9,6 +9,7 @@ haut - bas - haut => x^2 ? minimum vers 17 degrés celsius
 
 
 
+
 QUESTIONS :
 - principe d'horloge articielle ok ? (car implique delta t minimal et arbitraire) et time.sleep() dans un thread pour la faire s'écouler ?
 => NOOOON

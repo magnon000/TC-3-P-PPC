@@ -96,6 +96,14 @@ def termination(sig, frame):
         os.kill(pid_external, signal.SIGINT)
         print("Demande de termination. Le marché se fermera dès que possible.")
 
+def strike(sig, frame):
+    if sig == signal.SIGUSR1:
+        if
+
+def nuclear(sig, frame):
+    if sig == signal.SIGUSR2:
+        global
+
 
 # Processus external, fils de market
 def external():
@@ -150,6 +158,10 @@ if __name__ == "__main__":
     pid_external = external_process.pid
 
     signal.signal(signal.SIGINT, termination)
+    signal.signal(signal.SIGUSR1, strike)
+    signal.signal(signal.SIGUSR2, nuclear)
+    strike_event = False
+    nuclear_event = False
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.setblocking(False)
