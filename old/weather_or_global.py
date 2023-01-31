@@ -1,8 +1,8 @@
 from multiprocessing.managers import BaseManager  # or SyncManager: A subclass of BaseManager
 # https://docs.python.org/3/library/multiprocessing.html#multiprocessing.managers.SyncManager
 from multiprocessing.managers import Value
-import threading  # weather is managed independently by a scheduler
-import signal  # signal.SIGUSR1 & signal.SIGUSR2 for 2 events of weather
+import threading  # weather_dict is managed independently by a scheduler
+import signal  # signal.SIGUSR1 & signal.SIGUSR2 for 2 events of weather_dict
 import random
 import time
 
@@ -57,7 +57,7 @@ def start_weather():
 
 
 def stop_weather(sig):
-    """for main to stop weather, the simplest"""
+    """for main to stop weather_dict, the simplest"""
     global stop_weather_server
     if not stop_weather_server.is_set():
         if sig == signal.SIGUSR1:

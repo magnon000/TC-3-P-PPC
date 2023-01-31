@@ -51,8 +51,8 @@ if __name__ == '__main__':
     # freeze_support()
     manager = start_manager(50000, b'show_me_weather', addr='')
     # while True:
-    #     weather = Weather(task_queue)
-    #     weather.temperature()
+    #     weather_dict = Weather(task_queue)
+    #     weather_dict.temperature()
     #     print("onerun")
     #     time.sleep(1)
     weather = Weather(task_queue)
