@@ -44,14 +44,14 @@ class WeatherDict:
         day_index = 0  # begin at 01/01
         while not stop_weather_server:
             variation = random.normalvariate(0, 1.5)  # Normal distribution
-            if tempe_list[day_index] + variation > 0:
-                self.items['temperature'] = tempe_list[day_index] + variation
-            else:
-                self.items['temperature'] = 0.05
+            # if tempe_list[day_index] + variation > 0:
+            self.items['temperature'] = tempe_list[day_index] + variation
+            # else:
+            #     self.items['temperature'] = 0.05
             day_index += 1
             if day_index == 360:
                 day_index = 0
-            time.sleep(0.2)
+            time.sleep(0.2)  # time for one day
             print("day:", day_index, "; temperature:", self.items['temperature'], "°C")
 
 
