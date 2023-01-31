@@ -13,6 +13,7 @@ import signal
 HOST = "localhost"
 PORT = 1856
 MQ_CLE = 123
+MQ_SEM_CLE = 124
 description_types_maisons = ["I : Je donne toujours mon surplus",
                              "II : Je vends toujours mon surplus",
                              "III : Je vends mon surplus si personne n'en veut"]
@@ -210,17 +211,28 @@ def separateur():
     print("-----------------------------------")
 
 
-def flush_message_queue_if_necessary():
-    commande_verif_message_queue = 'ps -ef | grep "python3 home.py" | grep -v grep | wc -l'
-    proc = subprocess.Popen(commande_verif_message_queue, stdout=subprocess.PIPE, shell=True)
+def get_nb_autre_homes():
+    commande_verif = 'ps -ef | grep "python3 home.py" | grep -v grep | wc -l'
+    proc = subprocess.Popen(commande_verif, stdout=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     nb_maisons = int(out.decode())
-    print(nb_maisons)
+    return nb_maisons
 
+
+def flush_message_queue_if_necessary():
     # supprimer la message queue de l'ancienne session si elle existe encore
-    if nb_maisons < 2:
+    if get_nb_autre_homes() < 2:
         try:
             a_supprimer = sysv_ipc.MessageQueue(MQ_CLE)
+            a_supprimer.remove()
+        except sysv_ipc.ExistentialError:
+            pass
+
+
+def delete_semaphore_if_necessary():
+    if get_nb_autre_homes() < 2:
+        try:
+            a_supprimer = sysv_ipc.Semaphore(MQ_SEM_CLE)
             a_supprimer.remove()
         except sysv_ipc.ExistentialError:
             pass
@@ -231,12 +243,14 @@ def termination(sig, frame):
         global utilise_electricite
         utilise_electricite = False
         global dons_mq
-        flush_message_queue_if_necessary()
+        with queue_semaphore:
+            flush_message_queue_if_necessary()
+        delete_semaphore_if_necessary()
         print("Demande de termination. La maison se détruira dès que possible.")
 
 
 if __name__ == "__main__":
-    queue_semaphore = Semaphore(1)  # a remplacer plus tard par la sémaphore du remote manager
+    queue_semaphore = sysv_ipc.Semaphore(MQ_SEM_CLE, flags=sysv_ipc.IPC_CREAT, initial_value=1)
     with queue_semaphore:
         flush_message_queue_if_necessary()
     dons_mq = sysv_ipc.MessageQueue(MQ_CLE, sysv_ipc.IPC_CREAT)
