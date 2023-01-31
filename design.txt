@@ -1,4 +1,16 @@
 
+A faire maintenant :
+- programme principal
+- input personalisé
+- accéder à la température depuis home.py
+- fonction conso en fonction de la température
+- tests
+- préparer l'oral structure
+- petites slides oral
+
+
+
+
 A faire plus tard : paramètres initiaux en input
 
 
