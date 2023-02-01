@@ -13,7 +13,7 @@ AUTH_KEY = b'weather_dict'
 START_DAY = 0  # one year 360 days, choice: [0-359]
 SERVER = None
 
-DELTA_SECONDES = 5 if len(sys.argv) < 2 else sys.argv[1]
+DELTA_SECONDES = 5 if len(sys.argv) < 2 else int(sys.argv[1])
 
 
 class RemoteManager(BaseManager):
@@ -50,6 +50,10 @@ class WeatherDict:
             variation = random.normalvariate(0, 1.5)  # Normal distribution
             # if tempe_list[day_index] + variation > 0:
             self.items['temperature'] = tempe_list[day_index] + variation
+            if random.random() > 0.8:
+                self.items['rain'] = True
+            else:
+                self.items['rain'] = False
             # else:
             #     self.items['temperature'] = 0.05
             day_index += 1
@@ -57,10 +61,10 @@ class WeatherDict:
                 day_index = 0
                 print("------new year------")
             time.sleep(DELTA_SECONDES)  # time for one day
-            print("day:", day_index, "; temperature:", self.items['temperature'], "°C")
-            #if day_index == 20:
-                #stop_weather_signal(signal.SIGINT)
-        print("update_end")
+            print("day:", day_index, "; temperature:", self.items['temperature'], "°C", "; rain ?:", self.items['rain'])
+            # if day_index == 20:
+            # stop_weather_signal(signal.SIGINT)
+        # print("update_end")
 
 
 def stop_weather_server():  # deadlock

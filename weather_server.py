@@ -6,7 +6,7 @@ import signal
 
 def kill(sig, _):
     if sig == signal.SIGINT:
-        # SERVER.stop_weather_server()
+        SERVER.stop_weather_server()
         quit()
 
 
@@ -17,7 +17,7 @@ def run():
     manager_server = ManagerServer(ADDRESS, PORT, AUTH_KEY)
     # manager_server.run()
     # manager_server.stop()
-    signal.signal(signal.SIGINT, kill)
+    # signal.signal(signal.SIGINT, kill)
     weather_server_thread = threading.Thread(target=manager_server.run)
     weather_server_thread.setDaemon = True
     # weather_update_thread1 = threading.Thread(target=update_weather)
@@ -25,7 +25,6 @@ def run():
     weather_update_thread1.setDaemon = True
     weather_server_thread.start()
     weather_update_thread1.start()
-    # sys.exit()
     weather_update_thread1.join()
     weather_server_thread.join()
 
