@@ -8,6 +8,7 @@ import sys
 import random
 import threading
 import os
+import matplotlib.pyplot as plt
 
 HOST = "localhost"
 PORT = 1856
@@ -16,6 +17,7 @@ MAX_SIMULTANEOUS_TRANSACTIONS = 3
 marche_ouvert = True
 prix = 0.00
 prix_precedent = 0.00
+historique_prix = []
 
 strike_event = False
 antinuclear_event = False
@@ -104,9 +106,11 @@ def evolution_prix():
             prix = gamma_coef * prix_precedent + contribution_historique(modulation_historique)
             prix += contribution_strike(modulation_strike) + contribution_antinuclear(modulation_nuclear)
             prix = round(prix, 5)
+            historique_prix.append(prix)
             if prix < 0:
                 marche_ouvert = False
                 print("ERREUR: prix de l'énergie négatif. Effondrement du marché. Changer modulation")
+                os.kill(os.getpid(), signal.SIGINT)
 
 
 def termination(sig, frame):
@@ -115,9 +119,21 @@ def termination(sig, frame):
         marche_ouvert = False
         os.kill(pid_external, signal.SIGINT)
         try:
+            os.remove("prix_resultats.txt")
+        except OSError:
+            pass
+        with open("prix_resultats.txt", 'a') as file:
+            for prix_archive in historique_prix:
+                file.write(str(prix_archive)+" ")
+        try:
             print("Demande de termination. Le marché se fermera dès que possible.")
         except RuntimeError:
             pass
+        plt.plot(historique_prix)
+        plt.xlabel("Prix du kWh en €/kWh")
+        plt.ylabel("Temps (unités arbitraires)")
+        plt.title("Évolution du prix du kWh d'électricité en fonction du temps")
+        plt.show()
 
 
 def strike(sig, frame):
@@ -223,8 +239,10 @@ if __name__ == "__main__":
         server_socket.listen(MAX_SIMULTANEOUS_TRANSACTIONS)
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_SIMULTANEOUS_TRANSACTIONS) as pool:
             while marche_ouvert:
-                print("   Achats:", historique_achats, "\n   Ventes:", historique_ventes)
-                print("Prix de l'énergie: ", prix, "€/kWh")  # juste indicateur visuel => pas besoin de semaphore
+                nba = len(historique_achats)
+                nbv = len(historique_ventes)
+                print("\n   Derniers chats:", historique_achats[nba-5:], "\n   Dernières ventes:", historique_ventes[nbv-5:])
+                print("Prix de l'énergie: ", prix, "€/kWh\n")  # juste indicateur visuel => pas besoin de semaphore
                 readable, writable, erreur = select.select([server_socket], [], [], 1)
                 if server_socket in readable:
                     client_socket, address = server_socket.accept()
@@ -235,5 +253,6 @@ if __name__ == "__main__":
         server_socket.close()
     thread_prix.join()
     external_process.join()
+
 
 
