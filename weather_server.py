@@ -1,13 +1,13 @@
 # import weather_dict
 from weather import *
 import threading
+import signal
 
 
 def kill(sig, _):
-    print(sig)
     if sig == signal.SIGINT:
         # SERVER.stop_weather_server()
-        sys.exit()
+        quit()
 
 
 def run():

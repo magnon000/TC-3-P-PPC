@@ -13,6 +13,8 @@ AUTH_KEY = b'weather_dict'
 START_DAY = 0  # one year 360 days, choice: [0-359]
 SERVER = None
 
+DELTA_SECONDES = 5 if len(sys.argv) < 2 else sys.argv[1]
+
 
 class RemoteManager(BaseManager):
     pass
@@ -54,10 +56,10 @@ class WeatherDict:
             if day_index == 360:
                 day_index = 0
                 print("------new year------")
-            time.sleep(0.2)  # time for one day
+            time.sleep(DELTA_SECONDES)  # time for one day
             print("day:", day_index, "; temperature:", self.items['temperature'], "°C")
-            # if day_index:
-            #   stop_weather_signal(signal.SIGINT)
+            #if day_index == 20:
+                #stop_weather_signal(signal.SIGINT)
         print("update_end")
 
 
