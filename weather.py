@@ -5,11 +5,13 @@ import threading
 import time
 from multiprocessing import RLock
 from multiprocessing.managers import BaseManager
+import sys
 
 PORT = 50000
 ADDRESS = '127.0.0.1'
 AUTH_KEY = b'weather_dict'
 START_DAY = 0  # one year 360 days, choice: [0-359]
+SERVER = None
 
 
 class RemoteManager(BaseManager):
@@ -39,20 +41,29 @@ class WeatherDict:
         self.set(key, value)
 
     def update_weather(self):
-        global stop_weather_server
+        # global SERVER
         tempe_list = build_temperature()
         day_index = 0  # begin at 01/01
-        while not stop_weather_server:
+        while not stop_manager_signal.is_set():
             variation = random.normalvariate(0, 1.5)  # Normal distribution
-            if tempe_list[day_index] + variation > 0:
-                self.items['temperature'] = tempe_list[day_index] + variation
-            else:
-                self.items['temperature'] = 0.05
+            # if tempe_list[day_index] + variation > 0:
+            self.items['temperature'] = tempe_list[day_index] + variation
+            # else:
+            #     self.items['temperature'] = 0.05
             day_index += 1
             if day_index == 360:
                 day_index = 0
-            time.sleep(0.2)
+                print("------new year------")
+            time.sleep(0.2)  # time for one day
             print("day:", day_index, "; temperature:", self.items['temperature'], "°C")
+            if day_index == 20:
+                stop_weather_signal(signal.SIGINT)
+        print("update_end")
+
+
+def stop_weather_server():  # deadlock
+    global stop_manager_signal, SERVER
+    SERVER.stop_manager_signal.set()
 
 
 class ManagerServer:
@@ -60,22 +71,22 @@ class ManagerServer:
         self.address = addr
         self.port = port
         self.auth_key = key
+        self.queue_manager = None
 
     def start_manager_server(self):
+        global SERVER
         self.queue_manager = RemoteManager(address=('', self.port), authkey=self.auth_key)
-        self.server = self.queue_manager.get_server()
+        SERVER = self.queue_manager.get_server()
 
     def run(self):
+        global SERVER
         self.start_manager_server()
-        self.server.serve_forever()
-
-    # def stop(self):
-    # todo: stop manger server
-    # self.queue_manager.shutdown()
+        SERVER.serve_forever()
 
 
 class ManagerClient:
     def __init__(self, addr, port, key):
+        self.open_lock = None
         self.address = addr
         self.port = port
         self.auth_key = key
@@ -92,33 +103,37 @@ class ManagerClient:
 
 
 def build_temperature() -> list:  # baseline temperature
-    """supposons un an a 360 jour, et la temperature varie sous forme 36 * sin(jour)"""
+    """supposons qu'un an a 360 jours, et la température varie sous forme 36 * sin(jour)"""
     tempe_list = [abs(36 * math.sin((t - START_DAY) / 36 / math.pi) + 1.2) for t in
                   range(360)]  # +1.2 pour temperature >= 0
     return tempe_list
+
+
+def stop_weather_signal(sig):
+    """for main to stop weather_dict, the simplest"""
+    # global stop_manager_signal, SERVER
+    # if not stop_manager_signal.is_set():
+    #     if sig == signal.SIGINT:
+    #         stop_manager_signal.set()
+    #         SERVER.stop_manager_signal.set()
+    if sig == signal.SIGINT:
+        sys.exit()
 
 
 weather_dict = WeatherDict()
 # weather_dict['temperature'] = 20
 # weather_dict['rain'] = True
 # print(weather_dict.items)
+
 lock = RLock()  # reentrant lock objects
 # lock.acquire()
+
 RemoteManager.register('WeatherDictInstance', callable=lambda: weather_dict)
 RemoteManager.register('open_lock', callable=lambda: lock)
 
-# stop_weather_server = threading.Event()
-stop_weather_server = False
-# stop_weather_server.clear()
-# print(stop_weather_server)
-
-
-def stop_weather(sig):
-    """for main to stop weather_dict, the simplest"""
-    global stop_weather_server
-    if not stop_weather_server.is_set():
-        if sig == signal.SIGUSR1:
-            stop_weather_server.set()
+stop_manager_signal = threading.Event()
+stop_manager_signal.clear()
+# print(stop_manager_signal)
 
 
 # def update_weather():
