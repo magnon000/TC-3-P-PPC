@@ -135,8 +135,7 @@ RemoteManager.register('open_lock', callable=lambda: lock)
 
 stop_manager_signal = threading.Event()
 stop_manager_signal.clear()
-# print(stop_manager_signal)
-
+# print(stop_manager_signal.is_set())
 
 # def update_weather():
 #     global stop_weather_server
@@ -155,6 +154,7 @@ stop_manager_signal.clear()
 if __name__ == "__main__":
     # pass
     # print(build_temperature())
+    # signal.signal(signal.SIGINT, stop_weather_signal)
     weather_update_thread = threading.Thread(target=weather_dict.update_weather)
     weather_update_thread.start()
     weather_update_thread.join()
