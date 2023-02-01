@@ -8,6 +8,7 @@ import time
 import random
 import subprocess
 import signal
+from weather import *
 
 
 HOST = "localhost"
@@ -38,17 +39,17 @@ def maj_energie(parametre_modifie, quantite):
     quantite = float(quantite)
     if parametre_modifie == "compensation":
         compensation_energie += quantite
-        print("Compensation électrique maintenant à", compensation_energie)
+        print("\nMAJ COMP > Compensation électrique modifiée :", compensation_energie)
     elif parametre_modifie == "consommation":
         conso_energie += quantite
-        print("Consommation électrique maintenant à", conso_energie)
+        print("\nMAJ CONSO > Consommation électrique modifiée (température) :", conso_energie)
     elif parametre_modifie == "production":
         prod_energie += quantite
-        print("Production électrique maintenant à", prod_energie)
+        print("\nMAJ PROD > Production électrique modifiée :", prod_energie)
     else:
         print("Erreur maj_energie(): "+parametre_modifie+" non valide")
-    benefice_energie_global = prod_energie+compensation_energie-conso_energie
-    print("Benefice électrique maintenant à", benefice_energie_global, "kWh")
+    benefice_energie_global = round(prod_energie+compensation_energie-conso_energie,5)
+    print("MAJ BENEFICE > Benefice électrique maintenant à", benefice_energie_global, "kWh\n")
 
 
 # pas tout en 1 seule semaphore car la connection au serveur peut prendre du temps ça ralentirait tout
@@ -56,7 +57,7 @@ def maj_energie(parametre_modifie, quantite):
 # l'utilisateur se décide d'aller acheter et le moment où il aboutit l'achat d'électricité
 # => l'achat ne doit pas être atomique
 def achat_market(manque):
-    print("Déficit d'énergie de "+str(manque)+" kWh. Initiation d'une transaction avec le marché pour en acheter.")
+    print("\nMARCHÉ > Déficit d'énergie de "+str(manque)+" kWh. \nInitiation d'une transaction avec le marché pour en acheter.")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as market_achat_socket:
         try:
             market_achat_socket.connect((HOST, PORT))
@@ -70,7 +71,7 @@ def achat_market(manque):
             pos_separateur = facture.index("|")
             quantite_recue = facture[:pos_separateur]
             prix_a_payer = facture[pos_separateur + 1:]
-            print("Facture (quantité reçue | prix à payer):", quantite_recue, "kWh |", prix_a_payer, "€")
+            print("\nFacture (quantité reçue | prix à payer):", quantite_recue, "kWh |", prix_a_payer, "€")
             with energie_semaphore:
                 maj_energie("compensation", quantite_recue)
         except ConnectionRefusedError:
@@ -80,7 +81,7 @@ def achat_market(manque):
 
 
 def vente_market(a_vendre):
-    print("Surplus d'énergie de " + str(a_vendre) + " kWh. Initiation d'une transaction avec le marché pour le vendre.")
+    print("\nMARCHÉ > Surplus d'énergie de " + str(a_vendre) + " kWh. \nInitiation d'une transaction avec le marché pour le vendre.")
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as market_vente_socket:
         try:
             market_vente_socket.connect((HOST, PORT))
@@ -105,7 +106,7 @@ def vente_market(a_vendre):
 
 def don_voisinnage(a_donner):
     a_donner = str(a_donner)
-    print("Surplus d'énergie de " + a_donner + " kWh. Don au voisinnage.")
+    print("\nDONS > Surplus d'énergie de " + a_donner + " kWh. Don au voisinnage.\n")
     message = a_donner.encode()
     mq_saturation = False
     with queue_semaphore:
@@ -124,7 +125,7 @@ def don_voisinnage(a_donner):
 
 def don_voisinnage_ou_vente(a_donner):
     a_donner = str(a_donner)
-    print("Surplus d'énergie de " + a_donner + " kWh. Initiation d'un don au voisinnage...")
+    print("\nDONS > Surplus d'énergie de " + a_donner + " kWh. Initiation d'un don au voisinnage...\n")
     message = a_donner.encode()
     mq_saturation = False
     with queue_semaphore:
@@ -154,7 +155,7 @@ def don_voisinnage_ou_vente(a_donner):
 
 
 def recolte_don(manque):
-    print("Déficit d'énergie de "+str(manque)+" kWh. Recherche de dons du voisinnage...")
+    print("\nDONS > Déficit d'énergie de "+str(manque)+" kWh. Recherche de dons du voisinnage...\n")
     quantite_recoltee = 0
     don_dernier_tour = True
 
@@ -168,7 +169,7 @@ def recolte_don(manque):
                 # arrêter la récolte lorsqu'il n'y a plus de dons dans la message queue
                 don_dernier_tour = False
 
-    print("Obtenu", quantite_recoltee, "kWh par donation(s).")
+    print("DONS > Obtenu", quantite_recoltee, "kWh par donation(s).")
     if quantite_recoltee > 0:
         with energie_semaphore:
             maj_energie("compensation", quantite_recoltee)
@@ -206,8 +207,29 @@ def acquisition_energie():
                 print("Les dons n'ont pas suffit, il manque ", manque_apres_don, " kWh.")
                 achat_market(manque_apres_don)
 
+
+def formule_conso(temperature, conso):
+    return conso+conso*0.0005*((2*temperature-34)**2)
+
+
 def evolution_conso():
-    pass
+    global conso_energie
+    connected = False
+    manager_client = ManagerClient('127.0.0.1', 50000, b'weather_dict')
+    share_dict = manager_client.get_dict()
+    conso_initiale = conso_energie
+    ancienne_temperature = 0
+    temperature = share_dict.get('temperature')
+    while utilise_electricite:
+        share_dict = manager_client.get_dict()
+        ancienne_temperature = temperature
+        temperature = share_dict.get('temperature')
+
+        if ancienne_temperature != temperature:
+            with energie_semaphore:
+                nouvelle_conso = formule_conso(temperature, conso_initiale)
+                maj_energie("consommation", nouvelle_conso - conso_energie)
+
 
 def separateur():
     print("-----------------------------------")
@@ -252,6 +274,7 @@ def termination(sig, frame):
 
 
 if __name__ == "__main__":
+
     queue_semaphore = sysv_ipc.Semaphore(MQ_SEM_CLE, flags=sysv_ipc.IPC_CREAT, initial_value=1)
     with queue_semaphore:
         flush_message_queue_if_necessary()
@@ -270,6 +293,11 @@ if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, termination)
 
+    # remote manager
+    thread_conso = threading.Thread(target=evolution_conso)
+    thread_conso.start()
+
+
     separateur()
     print("Je suis la maison", os.getpid(), "de type", description_types_maisons[type_maison-1])
     print("Ma production initiale est de", prod_energie, "kWh et ma consommation initiale est de ", conso_energie, "kWh.")
@@ -283,5 +311,6 @@ if __name__ == "__main__":
     thread_vente.start()
     thread_vente.join()
     thread_achat.join()
+    thread_conso.join()
 
 

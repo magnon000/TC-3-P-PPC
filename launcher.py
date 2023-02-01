@@ -14,7 +14,7 @@ def stop_handler(sig, frame):
 
 
 def send_end_signals():
-    processes = ["home.py", "market.py", "weather.py", "weather_server.py"]
+    processes = ["home.py", "market.py", "weather_server.py"]
     for process_name in processes:
         command = "ps -ef | grep " + process_name + " | grep -v grep | awk '{print $2}'"
         proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
@@ -69,11 +69,13 @@ if __name__ == "__main__":
 
     if mode == 1:
         os.system("gnome-terminal --geometry 60x30 -- python3 " + path + "/market.py")
+        os.system("gnome-terminal --geometry 30x10 -- python3 "+path+"/weather_server.py")
         for i in range(0, nb_homes):
             commande = "gnome-terminal --geometry 80x10 -- python3 " + path + "/home.py"
             os.system(commande)
     elif mode == 2:
         commandes = []
+
         print("\n\n--- Marché ---\n")
         prix_initial = input("    * Prix initial de l'énergie (en €/kWh) ? ==> ")
         gamma = input("    * Facteur d'atténuation du prix (0.99 par défaut) ? ==> ")
@@ -84,6 +86,12 @@ if __name__ == "__main__":
         parametres = prix_initial+" "+gamma+" "+modulation_historique+" "+modulation_strike+" "+modulation_nuclear
         commande = "gnome-terminal -- python3 " + path + "/market.py "+parametres
         commandes.append(commande)
+
+
+        print("\n\n--- Weather ---\n")
+        vitesse = input("    * Combien de temps réel en secondes doit durer 1 journée (5 par défaut) ? ==> ")
+        commandes.append("gnome-terminal --geometry 30x10 -- python3 "+path+"/weather_server.py")
+
         for i in range(0, nb_homes):
             print("\n\n--- Maison N°"+str(i)+" ---\n")
             type_home = input("    * Type 1 (donne), 2 (vend) ou 3 (mix) ? ==> ")
@@ -91,9 +99,11 @@ if __name__ == "__main__":
             conso_home = input("    * Consommation en kWh ? ==> ")
             parametres = type_home+" "+prod_home+" "+conso_home
             commande = "gnome-terminal -- python3 " + path + "/home.py "+parametres
+            print("salu")
             commandes.append(commande)
 
         for commande in commandes:
+            print(commande)
             os.system(commande)
 
 

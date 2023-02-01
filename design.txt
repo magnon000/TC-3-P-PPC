@@ -1,7 +1,5 @@
 
 A faire maintenant :
-- accéder à la température depuis home.py
-- fonction conso en fonction de la température
 - tests
 - préparer l'oral structure
 - petites slides oral
