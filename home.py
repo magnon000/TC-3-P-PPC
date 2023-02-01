@@ -206,13 +206,15 @@ def acquisition_energie():
                 print("Les dons n'ont pas suffit, il manque ", manque_apres_don, " kWh.")
                 achat_market(manque_apres_don)
 
+def evolution_conso():
+    pass
 
 def separateur():
     print("-----------------------------------")
 
 
 def get_nb_autre_homes():
-    commande_verif = 'ps -ef | grep "python3 home.py" | grep -v grep | wc -l'
+    commande_verif = 'ps -ef | grep "home.py" | grep -v grep | wc -l'
     proc = subprocess.Popen(commande_verif, stdout=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     nb_maisons = int(out.decode())

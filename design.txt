@@ -1,7 +1,5 @@
 
 A faire maintenant :
-- programme principal
-- input personalisé
 - accéder à la température depuis home.py
 - fonction conso en fonction de la température
 - tests

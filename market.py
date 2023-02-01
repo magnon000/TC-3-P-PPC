@@ -34,7 +34,7 @@ MODULATION_HISTORIQUE_DEFAULT = 0.001
 
 
 def guichet_client(guichet_socket, addresse, semaphore):
-    print("Initiation d'une transaction avec un client sous l'addresse "+addresse)
+    print("\nInitiation d'une transaction avec un client sous l'addresse "+addresse+"\n")
     global historique_ventes
     global historique_achats
     terminal_message = ""
@@ -52,9 +52,9 @@ def guichet_client(guichet_socket, addresse, semaphore):
                 historique_achats.append(abs(facture))
         a_envoyer = str(quantite) + "|" + str(abs(facture))
         guichet_socket.send(a_envoyer.encode())
-        terminal_message += "La maison de la transaction "+addresse+" a "
+        terminal_message += "\nLa maison de la transaction "+addresse+" a "
         terminal_message += ("ACHETÉ " if quantite > 0 else "VENDU ")+str(abs(quantite))+" kHw d'énergie pour "
-        terminal_message += str(abs(facture))+" € (unitaire: "+str(prix)+" €/kWh)"
+        terminal_message += str(abs(facture))+" € (unitaire: "+str(prix)+" €/kWh)\n"
         print(terminal_message)
 
 
@@ -223,8 +223,8 @@ if __name__ == "__main__":
         server_socket.listen(MAX_SIMULTANEOUS_TRANSACTIONS)
         with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_SIMULTANEOUS_TRANSACTIONS) as pool:
             while marche_ouvert:
-                print("   Achats:",historique_achats, "\n   Ventes:", historique_ventes)
-                print("Prix de l'énergie: ",prix)  # juste indicateur visuel => pas besoin de semaphore
+                print("   Achats:", historique_achats, "\n   Ventes:", historique_ventes)
+                print("Prix de l'énergie: ", prix, "€/kWh")  # juste indicateur visuel => pas besoin de semaphore
                 readable, writable, erreur = select.select([server_socket], [], [], 1)
                 if server_socket in readable:
                     client_socket, address = server_socket.accept()
